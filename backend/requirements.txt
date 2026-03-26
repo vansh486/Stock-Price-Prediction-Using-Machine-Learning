@@ -1,0 +1,17 @@
+# Web Framework & Server
+fastapi
+uvicorn
+
+# Data Collection & Processing
+yfinance
+pandas
+numpy
+pandas-ta
+
+# Machine Learning & Deep Learning
+tensorflow
+scikit-learn
+
+# Scheduling & Environment Variables
+apscheduler
+python-dotenv
