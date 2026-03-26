@@ -38,10 +38,10 @@ async def lifespan(app: FastAPI):
     scheduler = BackgroundScheduler()
     
     # TEMPORARY TEST: Schedule the multi-stock training to run every 10 minutes
-    scheduler.add_job(retrain_all_existing_models, 'interval', minutes=10)
+    # scheduler.add_job(retrain_all_existing_models, 'interval', minutes=10)
     
     # FOR PRODUCTION (Swap to this when you submit the project)
-    # scheduler.add_job(retrain_all_existing_models, 'cron', day_of_week='sun', hour=2, minute=0)
+    scheduler.add_job(retrain_all_existing_models, 'cron', day_of_week='sun', hour=2, minute=0)
     
     scheduler.start()
     print("--- ⏰ Background Scheduler Started: Multi-Stock Retraining Active ---")
