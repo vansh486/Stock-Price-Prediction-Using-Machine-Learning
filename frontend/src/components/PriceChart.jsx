@@ -1,9 +1,6 @@
 ﻿import React, { useMemo } from 'react';
 import { ArrowDownRight, ArrowUpRight, BarChart3 } from 'lucide-react';
-
-function formatCurrency(value) {
-  return `$${Number(value).toFixed(2)}`;
-}
+import { formatCurrencyValue } from '../utils/market';
 
 function buildPath(points, xForIndex, yForValue, key) {
   if (!points.length) return '';
@@ -20,6 +17,7 @@ function PriceChart({
   predictedPrice,
   projectedChangePct,
   signal,
+  market,
   timeframe,
   onTimeframeChange,
   timeframes,
@@ -97,7 +95,7 @@ function PriceChart({
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Candlestick + Volume</p>
           <h2 className="mt-2 text-2xl font-semibold text-white">{ticker} Trading Structure</h2>
           <p className="mt-1 text-sm text-slate-300">
-            Current {formatCurrency(currentPrice)} to predicted {formatCurrency(predictedPrice)}
+            Current {formatCurrencyValue(currentPrice, market)} to predicted {formatCurrencyValue(predictedPrice, market)}
           </p>
         </div>
 
@@ -146,7 +144,7 @@ function PriceChart({
                 strokeDasharray="4 4"
               />
               <text x={8} y={chart.yForPrice(tick) + 4} fill={textTone} fontSize="11">
-                ${tick.toFixed(0)}
+                {formatCurrencyValue(tick, market, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
               </text>
             </g>
           ))}

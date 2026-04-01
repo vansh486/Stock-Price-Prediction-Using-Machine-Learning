@@ -25,7 +25,7 @@ function StockSearch({ ticker, setTicker, loading, onSubmit, quickTickers, onQui
             <input
               value={ticker}
               onChange={(event) => setTicker(event.target.value.toUpperCase())}
-              placeholder="Try AAPL, NVDA, TSLA..."
+              placeholder="Try AAPL, NVDA, RELIANCE.NS..."
               className="w-full rounded-xl border border-slate-600 bg-slate-950 py-3 pl-10 pr-4 text-sm text-white outline-none transition focus:border-cyan-400"
             />
           </label>
@@ -51,6 +51,10 @@ function StockSearch({ ticker, setTicker, loading, onSubmit, quickTickers, onQui
             </button>
           ))}
         </div>
+
+        <p className="text-xs text-slate-400">
+          Use `.NS` or `.BO` for Indian listings, for example `RELIANCE.NS`.
+        </p>
       </div>
     </section>
   );

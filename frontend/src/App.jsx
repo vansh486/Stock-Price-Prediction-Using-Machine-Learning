@@ -14,6 +14,7 @@ import {
 import MarketTickerStrip from './components/MarketTickerStrip';
 import SignalPipelinePanel from './components/SignalPipelinePanel';
 import StockSearch from './components/StockSearch';
+import { formatCurrencyValue, getAllMarketSessions, getMarketForTicker, getTickerDisplaySymbol } from './utils/market';
 
 const PriceChart = lazy(() => import('./components/PriceChart'));
 const SignalCard = lazy(() => import('./components/SignalCard'));
@@ -24,33 +25,27 @@ const NewsEventsPanel = lazy(() => import('./components/NewsEventsPanel'));
 const AlertBuilder = lazy(() => import('./components/AlertBuilder'));
 const PortfolioSimulator = lazy(() => import('./components/PortfolioSimulator'));
 
-const QUICK_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN'];
-const WATCHLIST_SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'NFLX'];
+const US_QUICK_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN'];
+const INDIA_QUICK_TICKERS = ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS'];
+const WATCHLIST_SYMBOLS = {
+  us: ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'NFLX'],
+  india: ['RELIANCE.NS', 'TCS.NS', 'INFY.NS', 'HDFCBANK.NS', 'ICICIBANK.NS', 'SBIN.NS', 'LT.NS', 'BHARTIARTL.NS'],
+};
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y'];
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const STORAGE_KEYS = {
   alerts: 'stock-dashboard-alerts',
   theme: 'stock-dashboard-theme',
 };
-const CURRENCY = new Intl.NumberFormat('en-US', {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-const MARKET_CLOCK_FORMATTER = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'America/New_York',
-  weekday: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  hour12: false,
-});
 
 const TAPE_MARKETS = [
-  { symbol: 'SPX', name: 'S&P 500', base: 5238.42 },
-  { symbol: 'NDX', name: 'NASDAQ 100', base: 18492.36 },
-  { symbol: 'DJI', name: 'Dow 30', base: 39722.84 },
-  { symbol: 'RUT', name: 'Russell 2000', base: 2089.73 },
-  { symbol: 'VIX', name: 'Volatility', base: 14.88 },
-  { symbol: 'BTC', name: 'Bitcoin', base: 67240.52 },
+  { symbol: 'SPX', name: 'S&P 500', base: 5238.42, market: 'us' },
+  { symbol: 'NDX', name: 'NASDAQ 100', base: 18492.36, market: 'us' },
+  { symbol: 'DJI', name: 'Dow 30', base: 39722.84, market: 'us' },
+  { symbol: 'NIFTY', name: 'Nifty 50', base: 22462.15, market: 'india' },
+  { symbol: 'SENSEX', name: 'Sensex', base: 73903.91, market: 'india' },
+  { symbol: 'BANKNIFTY', name: 'Bank Nifty', base: 48216.7, market: 'india' },
+  { symbol: 'BTC', name: 'Bitcoin', base: 67240.52, market: 'us' },
 ];
 
 function toNumber(value, fallback = 0) {
@@ -67,40 +62,9 @@ function normalizeSignal(signal) {
   return ['BUY', 'SELL', 'HOLD'].includes(upper) ? upper : 'HOLD';
 }
 
-function formatCurrency(value) {
-  return `$${CURRENCY.format(value)}`;
-}
-
 function formatSignedPercent(value) {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
-}
-
-function getMarketSession(date = new Date()) {
-  const parts = MARKET_CLOCK_FORMATTER.formatToParts(date);
-  const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
-  const hour = toNumber(parts.find((part) => part.type === 'hour')?.value, 0);
-  const minute = toNumber(parts.find((part) => part.type === 'minute')?.value, 0);
-  const minutesEt = hour * 60 + minute;
-  const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
-
-  if (!isWeekday) {
-    return { label: 'US Market Closed', tone: 'text-slate-100' };
-  }
-
-  if (minutesEt < 570) {
-    return { label: 'Pre-Market', tone: 'text-sky-300' };
-  }
-
-  if (minutesEt < 960) {
-    return { label: 'US Market Open', tone: 'text-emerald-300' };
-  }
-
-  if (minutesEt < 1200) {
-    return { label: 'After Hours', tone: 'text-amber-300' };
-  }
-
-  return { label: 'US Market Closed', tone: 'text-slate-100' };
 }
 
 function seedFromText(text) {
@@ -141,11 +105,11 @@ function nextTapeState(previousTape) {
   });
 }
 
-function createLabels(timeframe, points) {
+function createLabels(timeframe, points, market) {
   if (timeframe === '1D') {
     const labels = [];
-    let hour = 9;
-    let minute = 30;
+    let hour = market.code === 'india' ? 9 : 9;
+    let minute = market.code === 'india' ? 15 : 30;
 
     for (let index = 0; index < points; index += 1) {
       labels.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
@@ -175,7 +139,7 @@ function createLabels(timeframe, points) {
   return months.slice(0, points);
 }
 
-function buildPriceSeries({ current, predicted, ema, timeframe, ticker }) {
+function buildPriceSeries({ current, predicted, ema, timeframe, ticker, market }) {
   const pointsMap = {
     '1D': 14,
     '1W': 10,
@@ -185,7 +149,7 @@ function buildPriceSeries({ current, predicted, ema, timeframe, ticker }) {
   };
 
   const points = pointsMap[timeframe] || 14;
-  const labels = createLabels(timeframe, points);
+  const labels = createLabels(timeframe, points, market);
   const seed = seedFromText(ticker);
   const pivot = Math.max(3, Math.floor(points * 0.64));
   const volatilityScale = {
@@ -285,8 +249,9 @@ function createSparkline(seed, base) {
   });
 }
 
-function buildWatchlist({ ticker, currentPrice, projectedChangePct, signal }) {
-  const uniqueSymbols = [ticker, ...WATCHLIST_SYMBOLS.filter((symbol) => symbol !== ticker)].slice(0, 8);
+function buildWatchlist({ ticker, currentPrice, projectedChangePct, signal, market }) {
+  const marketUniverse = WATCHLIST_SYMBOLS[market.code] || WATCHLIST_SYMBOLS.us;
+  const uniqueSymbols = [ticker, ...marketUniverse.filter((symbol) => symbol !== ticker)].slice(0, 8);
 
   return uniqueSymbols.map((symbol, index) => {
     const seed = seedFromText(symbol);
@@ -299,11 +264,13 @@ function buildWatchlist({ ticker, currentPrice, projectedChangePct, signal }) {
 
     return {
       symbol,
-      name: `${symbol} Corp`,
+      displaySymbol: getTickerDisplaySymbol(symbol),
+      name: `${getTickerDisplaySymbol(symbol)} ${market.code === 'india' ? 'Ltd' : 'Corp'}`,
       price: Number(price.toFixed(2)),
       changePct: Number(change.toFixed(2)),
       sparkline: createSparkline(seed, price),
       volume: Math.round(420000 + index * 96000 + (seed % 11) * 26000),
+      market,
     };
   });
 }
@@ -595,6 +562,9 @@ function App() {
 
   useEffect(() => () => abortControllerRef.current?.abort(), []);
 
+  const selectedMarket = useMemo(() => getMarketForTicker(data?.ticker || ticker), [data?.ticker, ticker]);
+  const quickTickers = selectedMarket.code === 'india' ? INDIA_QUICK_TICKERS : US_QUICK_TICKERS;
+
   const dashboard = useMemo(() => {
     if (!data) return null;
 
@@ -630,9 +600,11 @@ function App() {
     );
 
     const symbol = String(data.ticker || ticker).toUpperCase();
+    const market = getMarketForTicker(symbol);
 
     return {
       ticker: symbol,
+      market,
       currentPrice,
       predictedPrice,
       projectedChange,
@@ -654,12 +626,14 @@ function App() {
         ema: indicators.ema20,
         timeframe,
         ticker: symbol,
+        market,
       }),
       watchlist: buildWatchlist({
         ticker: symbol,
         currentPrice,
         projectedChangePct,
         signal,
+        market,
       }),
       sectors: buildHeatmapData({
         signal,
@@ -676,9 +650,14 @@ function App() {
     };
   }, [data, ticker, timeframe]);
 
-  const marketStatus = useMemo(() => {
-    return getMarketSession(new Date(marketClockTick));
+  const marketSessions = useMemo(() => {
+    return getAllMarketSessions(new Date(marketClockTick));
   }, [marketClockTick]);
+  const prioritizedMarketSessions = useMemo(() => {
+    const primary = marketSessions[selectedMarket.code];
+    const secondary = marketSessions[selectedMarket.code === 'india' ? 'us' : 'india'];
+    return [primary, secondary];
+  }, [marketSessions, selectedMarket]);
 
   const updatedAt = lastUpdated
     ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
@@ -764,11 +743,18 @@ function App() {
             </p>
           </div>
           <div className="fade-slide-in panel-hover rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '180ms' }}>
-            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Market Session</p>
-            <p className={`mt-1 flex items-center gap-2 text-sm font-semibold ${marketStatus.tone}`}>
-              <ShieldCheck size={14} />
-              {marketStatus.label}
-            </p>
+            <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Market Sessions</p>
+            <div className="mt-2 space-y-1.5">
+              {prioritizedMarketSessions.map((session) => (
+                <div key={session.marketCode} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="inline-flex items-center gap-2 font-medium text-slate-300">
+                    <ShieldCheck size={14} />
+                    {session.marketLabel}
+                  </span>
+                  <span className={`font-semibold ${session.tone}`}>{session.shortLabel}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -780,7 +766,7 @@ function App() {
             setTicker={setTicker}
             loading={loading}
             onSubmit={handleSubmit}
-            quickTickers={QUICK_TICKERS}
+            quickTickers={quickTickers}
             onQuickSelect={requestPrediction}
           />
         </div>
@@ -807,7 +793,7 @@ function App() {
               <MetricCard
                 title="Live Price"
                 value={dashboard.currentPrice}
-                formatter={formatCurrency}
+                formatter={(value) => formatCurrencyValue(value, dashboard.market)}
                 caption={`${dashboard.ticker} spot reference`}
                 accent="text-slate-100"
                 icon={Activity}
@@ -816,7 +802,7 @@ function App() {
               <MetricCard
                 title="Predicted Close"
                 value={dashboard.predictedPrice}
-                formatter={formatCurrency}
+                formatter={(value) => formatCurrencyValue(value, dashboard.market)}
                 caption="LSTM model target"
                 accent="text-cyan-300"
                 icon={Bot}
@@ -826,7 +812,7 @@ function App() {
                 title="Projected Move"
                 value={dashboard.projectedChangePct}
                 formatter={formatSignedPercent}
-                caption={`${formatCurrency(dashboard.projectedChange)} expected swing`}
+                caption={`${formatCurrencyValue(dashboard.projectedChange, dashboard.market)} expected swing`}
                 accent={dashboard.projectedChangePct >= 0 ? 'text-emerald-300' : 'text-red-300'}
                 icon={Sparkles}
                 delay={160}
@@ -848,6 +834,7 @@ function App() {
               predictedPrice={dashboard.predictedPrice}
               projectedChangePct={dashboard.projectedChangePct}
               signal={dashboard.signal}
+              market={dashboard.market}
               indicators={dashboard.indicators}
               performance={dashboard.performance}
               confidence={dashboard.confidence}
@@ -855,7 +842,7 @@ function App() {
               apiStatus={apiStatusLabel}
               latencyLabel={latencyLabel}
               updatedAt={updatedAt}
-              marketStatus={marketStatus.label}
+              marketStatus={marketSessions[dashboard.market.code].label}
             />
 
             <Suspense fallback={<PanelSkeleton />}>
@@ -867,6 +854,7 @@ function App() {
                   predictedPrice={dashboard.predictedPrice}
                   projectedChangePct={dashboard.projectedChangePct}
                   signal={dashboard.signal}
+                  market={dashboard.market}
                   timeframe={timeframe}
                   onTimeframeChange={setTimeframe}
                   timeframes={TIMEFRAMES}
@@ -884,6 +872,7 @@ function App() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <WatchlistPanel
                   watchlist={dashboard.watchlist}
+                  market={dashboard.market}
                   onSelectTicker={requestPrediction}
                 />
                 <HeatmapPanel sectors={dashboard.sectors} />
@@ -895,6 +884,7 @@ function App() {
                 riskScore={dashboard.riskScore}
                 confidence={dashboard.confidence}
                 projectedChangePct={dashboard.projectedChangePct}
+                market={dashboard.market}
               />
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -909,6 +899,7 @@ function App() {
                     key={`alerts-${dashboard.ticker}`}
                     ticker={dashboard.ticker}
                     currentPrice={dashboard.currentPrice}
+                    market={dashboard.market}
                     alerts={alerts}
                     onAddAlert={addAlert}
                     onRemoveAlert={removeAlert}
@@ -917,6 +908,7 @@ function App() {
                     key={`portfolio-${dashboard.ticker}`}
                     ticker={dashboard.ticker}
                     currentPrice={dashboard.currentPrice}
+                    market={dashboard.market}
                     signal={dashboard.signal}
                   />
                 </div>
@@ -940,4 +932,3 @@ function App() {
 }
 
 export default App;
-

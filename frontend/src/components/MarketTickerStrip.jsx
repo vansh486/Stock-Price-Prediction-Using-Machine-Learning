@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
+import { formatCurrencyValue } from '../utils/market';
 
 function MarketTickerStrip({ items }) {
   const tape = [...items, ...items];
@@ -19,7 +20,9 @@ function MarketTickerStrip({ items }) {
                 <p className="text-[11px] uppercase tracking-[0.14em] text-slate-400">{item.name}</p>
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-100">{item.symbol}</p>
-                  <p className="text-xs text-slate-300">{item.price.toLocaleString('en-US')}</p>
+                  <p className="text-xs text-slate-300">
+                    {formatCurrencyValue(item.price, item.market, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
                 </div>
                 <p className={`mt-1 inline-flex items-center gap-1 text-xs font-semibold ${positive ? 'text-emerald-300' : 'text-red-300'}`}>
                   {positive ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}

@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import { ArrowDownRight, ArrowUpRight, Eye } from 'lucide-react';
+import { formatCurrencyValue } from '../utils/market';
 
 function sparklinePath(values, width = 96, height = 28) {
   if (!values.length) return '';
@@ -18,7 +19,7 @@ function sparklinePath(values, width = 96, height = 28) {
     .join(' ');
 }
 
-function WatchlistPanel({ watchlist, onSelectTicker }) {
+function WatchlistPanel({ watchlist, market, onSelectTicker }) {
   return (
     <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -45,8 +46,8 @@ function WatchlistPanel({ watchlist, onSelectTicker }) {
               className="group flex w-full items-center justify-between rounded-xl border border-slate-700 bg-slate-950 p-3 text-left transition hover:border-cyan-400"
             >
               <div>
-                <p className="text-sm font-semibold text-slate-100">{item.symbol}</p>
-                <p className="text-xs text-slate-400">Vol {item.volume.toLocaleString('en-US')}</p>
+                <p className="text-sm font-semibold text-slate-100">{item.displaySymbol || item.symbol}</p>
+                <p className="text-xs text-slate-400">Vol {item.volume.toLocaleString((item.market || market).locale)}</p>
               </div>
 
               <svg viewBox="0 0 96 28" className="h-7 w-24">
@@ -54,7 +55,7 @@ function WatchlistPanel({ watchlist, onSelectTicker }) {
               </svg>
 
               <div className="text-right">
-                <p className="text-sm font-semibold text-slate-100">${item.price.toFixed(2)}</p>
+                <p className="text-sm font-semibold text-slate-100">{formatCurrencyValue(item.price, item.market || market)}</p>
                 <p className={`inline-flex items-center gap-1 text-xs font-semibold ${positive ? 'text-emerald-300' : 'text-red-300'}`}>
                   {positive ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
                   {positive ? '+' : ''}

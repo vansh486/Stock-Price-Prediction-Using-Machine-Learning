@@ -1,7 +1,8 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { Calculator, Shield } from 'lucide-react';
+import { formatCurrencyValue } from '../utils/market';
 
-function PortfolioSimulator({ currentPrice, signal }) {
+function PortfolioSimulator({ currentPrice, market, signal }) {
   const [capital, setCapital] = useState(10000);
   const [riskPercent, setRiskPercent] = useState(1.5);
   const [entryInput, setEntryInput] = useState('');
@@ -79,7 +80,7 @@ function PortfolioSimulator({ currentPrice, signal }) {
       <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-950 p-3">
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-slate-400">
-            Capital
+            Capital ({market.currency})
             <input
               type="number"
               value={capital}
@@ -101,7 +102,7 @@ function PortfolioSimulator({ currentPrice, signal }) {
 
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-slate-400">
-            Entry Price
+            Entry Price ({market.currency})
             <input
               type="number"
               step="0.01"
@@ -150,7 +151,7 @@ function PortfolioSimulator({ currentPrice, signal }) {
       <div className="mt-4 space-y-2 rounded-xl border border-slate-700 bg-slate-950 p-3 text-sm">
         <p className="flex items-center justify-between text-slate-300">
           <span>Risk Budget</span>
-          <span className="font-semibold text-amber-300">${simulation.riskBudget.toFixed(2)}</span>
+          <span className="font-semibold text-amber-300">{formatCurrencyValue(simulation.riskBudget, market)}</span>
         </p>
         <p className="flex items-center justify-between text-slate-300">
           <span>Position Size</span>
@@ -158,18 +159,18 @@ function PortfolioSimulator({ currentPrice, signal }) {
         </p>
         <p className="flex items-center justify-between text-slate-300">
           <span>Position Value</span>
-          <span className="font-semibold text-slate-100">${simulation.positionValue.toFixed(2)}</span>
+          <span className="font-semibold text-slate-100">{formatCurrencyValue(simulation.positionValue, market)}</span>
         </p>
         <p className="flex items-center justify-between text-slate-300">
           <span>Stop / Target</span>
           <span className="font-semibold text-slate-100">
-            ${simulation.stopPrice.toFixed(2)} / ${simulation.targetPrice.toFixed(2)}
+            {formatCurrencyValue(simulation.stopPrice, market)} / {formatCurrencyValue(simulation.targetPrice, market)}
           </span>
         </p>
         <p className="flex items-center justify-between text-slate-300">
           <span>Potential P/L</span>
           <span className="font-semibold text-emerald-300">
-            +${simulation.potentialGain.toFixed(2)} / -${simulation.potentialLoss.toFixed(2)}
+            +{formatCurrencyValue(simulation.potentialGain, market)} / -{formatCurrencyValue(simulation.potentialLoss, market)}
           </span>
         </p>
         <p className="flex items-center justify-between text-slate-300">

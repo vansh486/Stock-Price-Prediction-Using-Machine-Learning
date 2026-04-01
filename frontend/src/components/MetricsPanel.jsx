@@ -1,11 +1,12 @@
 ﻿import React from 'react';
 import { Activity, AlertTriangle, CheckCircle2, Gauge, ShieldCheck, Workflow } from 'lucide-react';
+import { formatCurrencyValue } from '../utils/market';
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
-function MetricsPanel({ indicators, performance, riskScore, confidence, projectedChangePct }) {
+function MetricsPanel({ indicators, performance, riskScore, confidence, projectedChangePct, market }) {
   const rsi = indicators.rsi;
   const rsiLabel = rsi < 30 ? 'Oversold' : rsi > 70 ? 'Overbought' : 'Balanced';
   const rsiColor = rsi < 30 ? 'text-emerald-300' : rsi > 70 ? 'text-red-300' : 'text-cyan-300';
@@ -56,7 +57,7 @@ function MetricsPanel({ indicators, performance, riskScore, confidence, projecte
             </p>
             <p className="mt-2 flex items-center justify-between">
               <span>EMA-20 Baseline</span>
-              <span className="font-semibold text-amber-300">${indicators.ema20.toFixed(2)}</span>
+              <span className="font-semibold text-amber-300">{formatCurrencyValue(indicators.ema20, market)}</span>
             </p>
           </div>
         </div>

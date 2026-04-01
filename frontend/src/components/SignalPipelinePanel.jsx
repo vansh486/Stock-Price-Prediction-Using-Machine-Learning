@@ -7,10 +7,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from 'lucide-react';
-
-function formatCurrency(value) {
-  return `$${Number(value).toFixed(2)}`;
-}
+import { formatCurrencyValue } from '../utils/market';
 
 function formatPercent(value) {
   const sign = value >= 0 ? '+' : '';
@@ -134,6 +131,7 @@ function SignalPipelinePanel({
   predictedPrice,
   projectedChangePct,
   signal,
+  market,
   indicators,
   performance,
   confidence,
@@ -155,7 +153,7 @@ function SignalPipelinePanel({
       metrics: [
         { label: 'Ticker', value: ticker },
         { label: 'Session', value: marketStatus },
-        { label: 'Reference', value: formatCurrency(currentPrice) },
+        { label: 'Reference', value: formatCurrencyValue(currentPrice, market) },
       ],
     },
     {
@@ -167,7 +165,7 @@ function SignalPipelinePanel({
       secondary: 'Momentum and baseline checks update before the model pass.',
       metrics: [
         { label: 'MACD', value: indicators.macd },
-        { label: 'EMA-20', value: formatCurrency(indicators.ema20) },
+        { label: 'EMA-20', value: formatCurrencyValue(indicators.ema20, market) },
         { label: 'Signal Drift', value: indicators.rsi >= 65 ? 'Hot' : indicators.rsi <= 35 ? 'Cooling' : 'Balanced' },
       ],
     },
@@ -176,10 +174,10 @@ function SignalPipelinePanel({
       title: 'Forecast Model',
       icon: Bot,
       tone: stageTone('forecast'),
-      primary: formatCurrency(predictedPrice),
+      primary: formatCurrencyValue(predictedPrice, market),
       secondary: `Projection is ${formatPercent(projectedChangePct)} from the current reference.`,
       metrics: [
-        { label: 'Spot', value: formatCurrency(currentPrice) },
+        { label: 'Spot', value: formatCurrencyValue(currentPrice, market) },
         { label: 'MAPE', value: `${performance.mape.toFixed(2)}%` },
         { label: 'Sharpe', value: performance.sharpe.toFixed(2) },
       ],
@@ -206,7 +204,7 @@ function SignalPipelinePanel({
       secondary: actionSummary(signal),
       metrics: [
         { label: 'Plan', value: signal === 'BUY' ? 'Lean long' : signal === 'SELL' ? 'Lean short' : 'Stay selective' },
-        { label: 'Target', value: formatCurrency(predictedPrice) },
+        { label: 'Target', value: formatCurrencyValue(predictedPrice, market) },
         { label: 'Edge', value: formatPercent(projectedChangePct) },
       ],
     },

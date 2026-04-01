@@ -1,13 +1,15 @@
 ﻿import React, { useState } from 'react';
 import { Bell, Plus, Trash2 } from 'lucide-react';
+import { formatCurrencyValue } from '../utils/market';
 
-function AlertBuilder({ ticker, currentPrice, alerts, onAddAlert, onRemoveAlert }) {
+function AlertBuilder({ ticker, currentPrice, market, alerts, onAddAlert, onRemoveAlert }) {
   const [metric, setMetric] = useState('price');
   const [operator, setOperator] = useState('>');
   const [threshold, setThreshold] = useState(() => currentPrice.toFixed(2));
   const [channel, setChannel] = useState('In-App');
   const thresholdValue = Number(threshold);
   const isThresholdValid = Number.isFinite(thresholdValue) && thresholdValue > 0;
+  const thresholdLabel = metric === 'price' ? `Threshold (${market.currency})` : 'Threshold';
 
   const addAlert = (event) => {
     event.preventDefault();
@@ -17,6 +19,7 @@ function AlertBuilder({ ticker, currentPrice, alerts, onAddAlert, onRemoveAlert 
     onAddAlert({
       id: `${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
       ticker,
+      marketCode: market.code,
       metric,
       operator,
       value: thresholdValue,
@@ -65,7 +68,7 @@ function AlertBuilder({ ticker, currentPrice, alerts, onAddAlert, onRemoveAlert 
 
         <div className="grid grid-cols-2 gap-2">
           <label className="text-xs text-slate-400">
-            Threshold
+            {thresholdLabel}
             <input
               type="number"
               step="0.01"
@@ -110,7 +113,8 @@ function AlertBuilder({ ticker, currentPrice, alerts, onAddAlert, onRemoveAlert 
             <div key={alert.id} className="flex items-center justify-between gap-2 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2">
               <div>
                 <p className="text-xs font-semibold text-slate-200">
-                  {alert.ticker} {alert.metric} {alert.operator === '>' ? 'above' : 'below'} {alert.value}
+                  {alert.ticker} {alert.metric} {alert.operator === '>' ? 'above' : 'below'}{' '}
+                  {alert.metric === 'price' ? formatCurrencyValue(alert.value, alert.marketCode || market) : alert.value}
                 </p>
                 <p className="text-[11px] text-slate-400">
                   {alert.channel} • {alert.createdAt}
