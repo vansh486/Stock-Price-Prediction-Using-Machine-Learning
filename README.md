@@ -1,4 +1,7 @@
-# Stock Predictor
+# Stock Prediction Using Machine Learning.
+
+## Introduction
+
 
 Professional full-stack stock intelligence dashboard with an LSTM-based prediction backend, technical indicator pipeline, and a polished React frontend for market monitoring, signal review, alerts, and position planning.
 
