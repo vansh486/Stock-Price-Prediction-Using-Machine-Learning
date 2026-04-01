@@ -5,7 +5,7 @@ function MarketTickerStrip({ items }) {
   const tape = [...items, ...items];
 
   return (
-    <section className="fade-slide-in overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 px-2 py-2 shadow-[0_18px_36px_rgba(2,6,23,0.25)]">
+    <section className="fade-slide-in panel-hover overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 px-2 py-2 shadow-[0_18px_36px_rgba(2,6,23,0.25)]">
       <div className="ticker-marquee">
         <div className="ticker-marquee-track">
           {tape.map((item, index) => {

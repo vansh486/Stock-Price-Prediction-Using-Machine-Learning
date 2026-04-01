@@ -12,6 +12,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import MarketTickerStrip from './components/MarketTickerStrip';
+import SignalPipelinePanel from './components/SignalPipelinePanel';
 import StockSearch from './components/StockSearch';
 
 const PriceChart = lazy(() => import('./components/PriceChart'));
@@ -27,9 +28,20 @@ const QUICK_TICKERS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN'];
 const WATCHLIST_SYMBOLS = ['AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMZN', 'META', 'GOOGL', 'NFLX'];
 const TIMEFRAMES = ['1D', '1W', '1M', '3M', '1Y'];
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const STORAGE_KEYS = {
+  alerts: 'stock-dashboard-alerts',
+  theme: 'stock-dashboard-theme',
+};
 const CURRENCY = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
+});
+const MARKET_CLOCK_FORMATTER = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/New_York',
+  weekday: 'short',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
 });
 
 const TAPE_MARKETS = [
@@ -62,6 +74,33 @@ function formatCurrency(value) {
 function formatSignedPercent(value) {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toFixed(2)}%`;
+}
+
+function getMarketSession(date = new Date()) {
+  const parts = MARKET_CLOCK_FORMATTER.formatToParts(date);
+  const weekday = parts.find((part) => part.type === 'weekday')?.value ?? '';
+  const hour = toNumber(parts.find((part) => part.type === 'hour')?.value, 0);
+  const minute = toNumber(parts.find((part) => part.type === 'minute')?.value, 0);
+  const minutesEt = hour * 60 + minute;
+  const isWeekday = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].includes(weekday);
+
+  if (!isWeekday) {
+    return { label: 'US Market Closed', tone: 'text-slate-100' };
+  }
+
+  if (minutesEt < 570) {
+    return { label: 'Pre-Market', tone: 'text-sky-300' };
+  }
+
+  if (minutesEt < 960) {
+    return { label: 'US Market Open', tone: 'text-emerald-300' };
+  }
+
+  if (minutesEt < 1200) {
+    return { label: 'After Hours', tone: 'text-amber-300' };
+  }
+
+  return { label: 'US Market Closed', tone: 'text-slate-100' };
 }
 
 function seedFromText(text) {
@@ -371,12 +410,12 @@ function LoadingSkeleton() {
         {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={`metric-skeleton-${index}`}
-            className="h-28 animate-pulse rounded-2xl border border-slate-700 bg-slate-900"
+            className="shimmer-surface h-28 rounded-2xl border border-slate-700 bg-slate-900"
           />
         ))}
       </div>
-      <div className="h-[420px] animate-pulse rounded-2xl border border-slate-700 bg-slate-900" />
-      <div className="h-[320px] animate-pulse rounded-2xl border border-slate-700 bg-slate-900" />
+      <div className="shimmer-surface h-[420px] rounded-2xl border border-slate-700 bg-slate-900" />
+      <div className="shimmer-surface h-[320px] rounded-2xl border border-slate-700 bg-slate-900" />
     </div>
   );
 }
@@ -384,22 +423,64 @@ function LoadingSkeleton() {
 function PanelSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="h-[460px] animate-pulse rounded-2xl border border-slate-700 bg-slate-900" />
-      <div className="h-[340px] animate-pulse rounded-2xl border border-slate-700 bg-slate-900" />
-      <div className="h-[390px] animate-pulse rounded-2xl border border-slate-700 bg-slate-900" />
+      <div className="shimmer-surface h-[460px] rounded-2xl border border-slate-700 bg-slate-900" />
+      <div className="shimmer-surface h-[340px] rounded-2xl border border-slate-700 bg-slate-900" />
+      <div className="shimmer-surface h-[390px] rounded-2xl border border-slate-700 bg-slate-900" />
     </div>
   );
 }
 
-function MetricCard({ title, value, caption, accent, delay = 0 }) {
+function AnimatedMetricValue({ value, formatter, className }) {
+  const safeValue = Number.isFinite(value) ? value : 0;
+  const [displayValue, setDisplayValue] = useState(safeValue);
+  const previousValueRef = useRef(safeValue);
+
+  useEffect(() => {
+    const startValue = previousValueRef.current;
+    const endValue = Number.isFinite(value) ? value : 0;
+    previousValueRef.current = endValue;
+
+    let frameId = 0;
+    const startTime = performance.now();
+    const duration = 720;
+
+    const animate = (now) => {
+      const progress = clamp((now - startTime) / duration, 0, 1);
+      const easedProgress = 1 - (1 - progress) ** 4;
+      setDisplayValue(startValue + (endValue - startValue) * easedProgress);
+
+      if (progress < 1) {
+        frameId = requestAnimationFrame(animate);
+      }
+    };
+
+    frameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frameId);
+  }, [value]);
+
+  return <p className={className}>{formatter(displayValue)}</p>;
+}
+
+function MetricCard({ title, value, formatter, caption, accent, icon: Icon, delay = 0 }) {
   return (
     <article
-      className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)]"
+      className="fade-slide-in panel-hover relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)]"
       style={{ animationDelay: `${delay}ms` }}
     >
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{title}</p>
-      <p className={`mt-2 text-2xl font-semibold ${accent}`}>{value}</p>
-      <p className="mt-2 text-sm text-slate-300">{caption}</p>
+      <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-cyan-400/10 blur-2xl" />
+      <div className="relative flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{title}</p>
+          <AnimatedMetricValue value={value} formatter={formatter} className={`mt-2 text-2xl font-semibold ${accent}`} />
+          <p className="mt-2 text-sm text-slate-300">{caption}</p>
+        </div>
+        {Icon ? (
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-700 bg-slate-950 text-cyan-300">
+            <Icon size={18} />
+          </span>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -411,11 +492,21 @@ function App() {
   const [error, setError] = useState('');
   const [lastUpdated, setLastUpdated] = useState(null);
   const [timeframe, setTimeframe] = useState('1D');
-  const [theme, setTheme] = useState(() => localStorage.getItem('stock-dashboard-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem(STORAGE_KEYS.theme) || 'dark');
   const [apiStatus, setApiStatus] = useState('idle');
   const [latencyMs, setLatencyMs] = useState(null);
   const [tickerTape, setTickerTape] = useState(() => createInitialTape());
-  const [alerts, setAlerts] = useState([]);
+  const [alerts, setAlerts] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.alerts) || '[]');
+      return Array.isArray(stored) ? stored : [];
+    } catch {
+      return [];
+    }
+  });
+  const [marketClockTick, setMarketClockTick] = useState(() => Date.now());
+  const initializedRef = useRef(false);
+  const abortControllerRef = useRef(null);
   const requestIdRef = useRef(0);
 
   const requestPrediction = useCallback(async (rawTicker) => {
@@ -434,9 +525,14 @@ function App() {
     setApiStatus('syncing');
     const requestId = ++requestIdRef.current;
     const startTime = performance.now();
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     try {
-      const response = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(symbol)}`);
+      const response = await fetch(`${API_BASE}/api/predict/${encodeURIComponent(symbol)}`, {
+        signal: controller.signal,
+      });
       if (!response.ok) {
         throw new Error(`Unable to fetch data for ${symbol}.`);
       }
@@ -450,10 +546,14 @@ function App() {
       setLatencyMs(Math.round(performance.now() - startTime));
     } catch (fetchError) {
       if (requestId !== requestIdRef.current) return;
+      if (fetchError?.name === 'AbortError') return;
       setError(fetchError.message || 'Something went wrong while loading market data.');
       setApiStatus('offline');
       setLatencyMs(Math.round(performance.now() - startTime));
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       if (requestId === requestIdRef.current) {
         setLoading(false);
       }
@@ -461,11 +561,16 @@ function App() {
   }, []);
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
     requestPrediction('AAPL');
   }, [requestPrediction]);
 
   useEffect(() => {
-    localStorage.setItem('stock-dashboard-theme', theme);
+    localStorage.setItem(STORAGE_KEYS.theme, theme);
+    document.documentElement.dataset.theme = theme;
+    document.body.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
   }, [theme]);
 
   useEffect(() => {
@@ -475,6 +580,20 @@ function App() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMarketClockTick(Date.now());
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.alerts, JSON.stringify(alerts));
+  }, [alerts]);
+
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   const dashboard = useMemo(() => {
     if (!data) return null;
@@ -558,16 +677,13 @@ function App() {
   }, [data, ticker, timeframe]);
 
   const marketStatus = useMemo(() => {
-    const now = new Date();
-    const minutesUtc = now.getUTCHours() * 60 + now.getUTCMinutes();
-    const minutesEt = (minutesUtc - 240 + 1440) % 1440;
-    const isWeekday = now.getUTCDay() >= 1 && now.getUTCDay() <= 5;
-    return isWeekday && minutesEt >= 570 && minutesEt < 960 ? 'US Market Open' : 'US Market Closed';
-  }, []);
+    return getMarketSession(new Date(marketClockTick));
+  }, [marketClockTick]);
 
   const updatedAt = lastUpdated
     ? lastUpdated.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : '--';
+  const latencyLabel = latencyMs !== null ? `${latencyMs} ms` : '--';
 
   const apiStatusLabel =
     apiStatus === 'online' ? 'API Connected' : apiStatus === 'syncing' ? 'Syncing' : apiStatus === 'offline' ? 'API Offline' : 'Waiting';
@@ -605,13 +721,13 @@ function App() {
           <div>
             <p className="inline-flex items-center gap-2 rounded-full border border-cyan-400 bg-cyan-500/15 px-3 py-1 text-xs tracking-[0.22em] text-cyan-200">
               <Sparkles size={14} />
-              AI Trading Command Center
+              AI Signal Operations Console
             </p>
             <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
-              Next-Level Stock Intelligence Dashboard
+              Professional Stock Intelligence Workspace
             </h1>
             <p className="mt-2 max-w-3xl text-sm text-slate-300 sm:text-base">
-              Premium trading interface with live market tape, candlestick and volume analytics, smart alerts, and risk simulation.
+              Track model output, technical context, decision flow, and execution planning in one production-ready dashboard.
             </p>
           </div>
 
@@ -626,32 +742,32 @@ function App() {
         </header>
 
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="fade-slide-in rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '0ms' }}>
+          <div className="fade-slide-in panel-hover rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '0ms' }}>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">API Status</p>
             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-cyan-300">
               {apiStatus === 'offline' ? <WifiOff size={14} /> : <Wifi size={14} />}
               {apiStatusLabel}
             </p>
           </div>
-          <div className="fade-slide-in rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '60ms' }}>
+          <div className="fade-slide-in panel-hover rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '60ms' }}>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Data Latency</p>
             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-emerald-300">
               <Activity size={14} />
-              {latencyMs ? `${latencyMs} ms` : '--'}
+              {latencyLabel}
             </p>
           </div>
-          <div className="fade-slide-in rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '120ms' }}>
+          <div className="fade-slide-in panel-hover rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '120ms' }}>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Last Sync</p>
             <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-slate-100">
               <Clock3 size={14} />
               {updatedAt}
             </p>
           </div>
-          <div className="fade-slide-in rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '180ms' }}>
+          <div className="fade-slide-in panel-hover rounded-xl border border-slate-700 bg-slate-900 px-4 py-3" style={{ animationDelay: '180ms' }}>
             <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Market Session</p>
-            <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-amber-300">
+            <p className={`mt-1 flex items-center gap-2 text-sm font-semibold ${marketStatus.tone}`}>
               <ShieldCheck size={14} />
-              {marketStatus}
+              {marketStatus.label}
             </p>
           </div>
         </div>
@@ -690,33 +806,57 @@ function App() {
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <MetricCard
                 title="Live Price"
-                value={formatCurrency(dashboard.currentPrice)}
+                value={dashboard.currentPrice}
+                formatter={formatCurrency}
                 caption={`${dashboard.ticker} spot reference`}
                 accent="text-slate-100"
+                icon={Activity}
                 delay={0}
               />
               <MetricCard
                 title="Predicted Close"
-                value={formatCurrency(dashboard.predictedPrice)}
+                value={dashboard.predictedPrice}
+                formatter={formatCurrency}
                 caption="LSTM model target"
                 accent="text-cyan-300"
+                icon={Bot}
                 delay={80}
               />
               <MetricCard
                 title="Projected Move"
-                value={formatSignedPercent(dashboard.projectedChangePct)}
+                value={dashboard.projectedChangePct}
+                formatter={formatSignedPercent}
                 caption={`${formatCurrency(dashboard.projectedChange)} expected swing`}
                 accent={dashboard.projectedChangePct >= 0 ? 'text-emerald-300' : 'text-red-300'}
+                icon={Sparkles}
                 delay={160}
               />
               <MetricCard
                 title="Model Confidence"
-                value={`${dashboard.confidence}%`}
+                value={dashboard.confidence}
+                formatter={(value) => `${Math.round(value)}%`}
                 caption="Signal reliability score"
                 accent="text-amber-300"
+                icon={ShieldCheck}
                 delay={240}
               />
             </div>
+
+            <SignalPipelinePanel
+              ticker={dashboard.ticker}
+              currentPrice={dashboard.currentPrice}
+              predictedPrice={dashboard.predictedPrice}
+              projectedChangePct={dashboard.projectedChangePct}
+              signal={dashboard.signal}
+              indicators={dashboard.indicators}
+              performance={dashboard.performance}
+              confidence={dashboard.confidence}
+              riskScore={dashboard.riskScore}
+              apiStatus={apiStatusLabel}
+              latencyLabel={latencyLabel}
+              updatedAt={updatedAt}
+              marketStatus={marketStatus.label}
+            />
 
             <Suspense fallback={<PanelSkeleton />}>
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
@@ -786,11 +926,11 @@ function App() {
         ) : null}
 
         {!loading && !dashboard ? (
-          <section className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-8 text-center">
+          <section className="panel-hover mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-8 text-center">
             <Bot size={28} className="mx-auto text-cyan-300" />
             <h2 className="mt-3 text-2xl font-semibold text-white">Search any stock to load the dashboard</h2>
             <p className="mx-auto mt-2 max-w-2xl text-sm text-slate-300">
-              Enter a ticker symbol to generate a full market view with charting, signal analytics, alerts, risk simulation, and trust indicators.
+              Enter a ticker symbol to load the full workflow: forecast, risk signal, decision flow, alerts, and position planning.
             </p>
           </section>
         ) : null}

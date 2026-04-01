@@ -21,7 +21,7 @@ function MetricsPanel({ indicators, performance, riskScore, confidence, projecte
 
   return (
     <section className="fade-slide-in grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <article className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
+      <article className="panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Technical Pulse</p>
         <h3 className="mt-2 text-xl font-semibold text-white">Indicator Snapshot</h3>
 
@@ -62,7 +62,7 @@ function MetricsPanel({ indicators, performance, riskScore, confidence, projecte
         </div>
       </article>
 
-      <article className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
+      <article className="panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Model Diagnostics</p>
         <h3 className="mt-2 text-xl font-semibold text-white">Performance Health</h3>
 
@@ -91,7 +91,7 @@ function MetricsPanel({ indicators, performance, riskScore, confidence, projecte
         </div>
       </article>
 
-      <article className="rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
+      <article className="panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-5 shadow-[0_18px_34px_rgba(2,6,23,0.24)]">
         <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Risk Console</p>
         <h3 className="mt-2 text-xl font-semibold text-white">Execution Guidance</h3>
 

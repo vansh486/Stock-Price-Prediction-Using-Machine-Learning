@@ -4,10 +4,12 @@ import { Calculator, Shield } from 'lucide-react';
 function PortfolioSimulator({ currentPrice, signal }) {
   const [capital, setCapital] = useState(10000);
   const [riskPercent, setRiskPercent] = useState(1.5);
-  const [entry, setEntry] = useState(currentPrice);
+  const [entryInput, setEntryInput] = useState('');
   const [stopLossPercent, setStopLossPercent] = useState(2.0);
   const [targetPercent, setTargetPercent] = useState(5.0);
-  const [direction, setDirection] = useState(signal === 'SELL' ? 'SHORT' : 'LONG');
+  const [directionOverride, setDirectionOverride] = useState('');
+  const entry = entryInput === '' ? currentPrice : entryInput;
+  const direction = directionOverride || (signal === 'SELL' ? 'SHORT' : 'LONG');
 
   const simulation = useMemo(() => {
     const safeEntry = Math.max(0.01, Number(entry) || 0.01);
@@ -51,11 +53,28 @@ function PortfolioSimulator({ currentPrice, signal }) {
   }, [capital, riskPercent, entry, stopLossPercent, targetPercent, direction]);
 
   return (
-    <article className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
-      <div className="mb-4 flex items-center gap-2">
-        <Calculator size={16} className="text-amber-300" />
-        <h3 className="text-lg font-semibold text-white">Portfolio Simulator</h3>
+    <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Calculator size={16} className="text-amber-300" />
+          <h3 className="text-lg font-semibold text-white">Portfolio Simulator</h3>
+        </div>
+        <span
+          className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+            signal === 'BUY'
+              ? 'border-emerald-500 bg-emerald-500/10 text-emerald-200'
+              : signal === 'SELL'
+                ? 'border-red-500 bg-red-500/10 text-red-200'
+                : 'border-amber-500 bg-amber-500/10 text-amber-200'
+          }`}
+        >
+          {signal} bias
+        </span>
       </div>
+
+      <p className="mb-4 text-sm text-slate-300">
+        Stress-test position sizing against the current model posture before placing the trade.
+      </p>
 
       <div className="space-y-3 rounded-xl border border-slate-700 bg-slate-950 p-3">
         <div className="grid grid-cols-2 gap-2">
@@ -87,7 +106,7 @@ function PortfolioSimulator({ currentPrice, signal }) {
               type="number"
               step="0.01"
               value={entry}
-              onChange={(event) => setEntry(event.target.value)}
+              onChange={(event) => setEntryInput(event.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
             />
           </label>
@@ -95,7 +114,7 @@ function PortfolioSimulator({ currentPrice, signal }) {
             Direction
             <select
               value={direction}
-              onChange={(event) => setDirection(event.target.value)}
+              onChange={(event) => setDirectionOverride(event.target.value)}
               className="mt-1 w-full rounded-lg border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-slate-100"
             >
               <option value="LONG">LONG</option>

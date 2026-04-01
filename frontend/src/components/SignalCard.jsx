@@ -19,7 +19,7 @@ function SignalCard({ signal, confidence, riskScore, signalMix, projectedChangeP
         : 'Signal is balanced. Wait for stronger directional confirmation.';
 
   return (
-    <article className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)] sm:p-6">
+    <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)] sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Signal Engine</p>

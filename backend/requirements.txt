@@ -11,6 +11,7 @@ pandas-ta
 # Machine Learning & Deep Learning
 tensorflow
 scikit-learn
+joblib
 
 # Scheduling & Environment Variables
 apscheduler

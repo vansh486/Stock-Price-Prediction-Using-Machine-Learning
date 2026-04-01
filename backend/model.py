@@ -1,45 +1,90 @@
 import numpy as np
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense, Dropout
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.layers import Dense, Dropout, Input, LSTM
+from tensorflow.keras.models import Sequential
+
+
+TARGET_COLUMN = "Close"
+
 
 def create_lstm_model(input_shape):
     """
-    Constructs the Multi-layer LSTM model defined in Step 4 of the methodology.
+    Build a stacked LSTM model for next-close regression.
     """
-    model = Sequential([
-        # Layer 1: First LSTM layer with Dropout
-        LSTM(units=50, return_sequences=True, input_shape=input_shape),
-        Dropout(0.2),
-        
-        # Layer 2: Second LSTM layer (Stacked)
-        LSTM(units=50, return_sequences=False),
-        Dropout(0.2),
-        
-        # Output Layers for Regression
-        Dense(units=25),
-        Dense(units=1)
-    ])
-    
-    # Using Adam optimizer and Mean Squared Error loss as per Step 4
-    model.compile(optimizer='adam', loss='mean_squared_error')
+    model = Sequential(
+        [
+            Input(shape=input_shape),
+            LSTM(units=50, return_sequences=True),
+            Dropout(0.2),
+            LSTM(units=50, return_sequences=False),
+            Dropout(0.2),
+            Dense(units=25),
+            Dense(units=1),
+        ]
+    )
+    model.compile(optimizer="adam", loss="mean_squared_error")
     return model
 
-def prepare_data(df, look_back=60):
+
+def prepare_data(df, look_back=60, target_column=TARGET_COLUMN):
     """
-    Step 2 & 4: Normalizes data and creates 60-day sliding windows.
+    Normalize the feature frame and construct sliding windows.
     """
-    # Min-Max Normalization to range [0, 1] for stable training
+    if target_column not in df.columns:
+        raise ValueError(f"Target column '{target_column}' is missing from the training frame.")
+
+    feature_columns = list(df.columns)
+    target_index = feature_columns.index(target_column)
     scaler = MinMaxScaler(feature_range=(0, 1))
-    
-    # We use all features (Price + Technical Indicators)
-    scaled_data = scaler.fit_transform(df)
-    
+    scaled_data = scaler.fit_transform(df[feature_columns])
+
+    if len(scaled_data) <= look_back:
+        raise ValueError(
+            f"Not enough rows to build sequences. Need more than {look_back} rows after indicator generation."
+        )
+
     X, y = [], []
-    for i in range(look_back, len(scaled_data)):
-        # Create a window of 60 days
-        X.append(scaled_data[i-look_back:i])
-        # The target is the 'Close' price (usually the first column)
-        y.append(scaled_data[i, 3]) # Adjust index if 'Close' is not at 3
-        
-    return np.array(X), np.array(y), scaler
+    for index in range(look_back, len(scaled_data)):
+        X.append(scaled_data[index - look_back : index])
+        y.append(scaled_data[index, target_index])
+
+    return np.array(X), np.array(y), scaler, feature_columns, target_index
+
+
+def prepare_inference_window(df, scaler, feature_columns, look_back=60):
+    missing_columns = [column for column in feature_columns if column not in df.columns]
+    if missing_columns:
+        raise ValueError(
+            f"Inference data is missing trained feature columns: {', '.join(missing_columns)}."
+        )
+
+    ordered_frame = df[feature_columns]
+    if len(ordered_frame) < look_back:
+        raise ValueError(f"Need at least {look_back} rows to prepare the inference window.")
+
+    scaled_data = scaler.transform(ordered_frame)
+    return scaled_data[-look_back:].reshape(1, look_back, len(feature_columns))
+
+
+def inverse_transform_target(scaler, scaled_values, feature_columns, target_index=None):
+    if target_index is None:
+        if TARGET_COLUMN not in feature_columns:
+            raise ValueError(f"Target column '{TARGET_COLUMN}' is missing from feature metadata.")
+        target_index = feature_columns.index(TARGET_COLUMN)
+
+    scaled_values = np.asarray(scaled_values).reshape(-1)
+    dummy = np.zeros((len(scaled_values), len(feature_columns)))
+    dummy[:, target_index] = scaled_values
+    return scaler.inverse_transform(dummy)[:, target_index]
+
+
+def build_signal(current_price, predicted_price, min_threshold_pct=0.5):
+    if current_price <= 0:
+        return "HOLD", 0.0
+
+    predicted_change_pct = ((predicted_price - current_price) / current_price) * 100
+    if predicted_change_pct > min_threshold_pct:
+        return "BUY", predicted_change_pct
+    if predicted_change_pct < -min_threshold_pct:
+        return "SELL", predicted_change_pct
+    return "HOLD", predicted_change_pct

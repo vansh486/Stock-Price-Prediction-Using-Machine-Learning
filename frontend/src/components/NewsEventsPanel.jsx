@@ -9,7 +9,7 @@ function badgeTone(impact) {
 
 function NewsEventsPanel({ newsItems, upcomingEvents }) {
   return (
-    <article className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
+    <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <section>
           <div className="mb-4 flex items-center gap-2">

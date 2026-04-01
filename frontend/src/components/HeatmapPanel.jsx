@@ -19,7 +19,7 @@ function colorForChange(changePct) {
 
 function HeatmapPanel({ sectors }) {
   return (
-    <article className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
+    <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_18px_34px_rgba(2,6,23,0.24)] sm:p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-slate-400">Market Heatmap</p>

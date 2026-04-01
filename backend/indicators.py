@@ -1,6 +1,9 @@
 import pandas as pd
 import pandas_ta as ta
 
+RAW_FEATURE_COLUMNS = ["Open", "High", "Low", "Close", "Volume"]
+
+
 def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
     Takes a Pandas DataFrame containing raw OHLCV stock data and 
@@ -39,3 +42,23 @@ def add_technical_indicators(df: pd.DataFrame) -> pd.DataFrame:
     data.dropna(inplace=True)
 
     return data
+
+
+def extract_indicator_snapshot(df: pd.DataFrame) -> dict[str, float | None]:
+    if df.empty:
+        raise ValueError("Indicator dataframe is empty.")
+
+    macd_column = next(
+        (
+            column
+            for column in df.columns
+            if column.startswith("MACD_") and not column.startswith("MACDh_") and not column.startswith("MACDs_")
+        ),
+        None,
+    )
+
+    return {
+        "RSI_14": round(float(df["RSI_14"].iloc[-1]), 2) if "RSI_14" in df else None,
+        "MACD": round(float(df[macd_column].iloc[-1]), 4) if macd_column else None,
+        "EMA_20": round(float(df["EMA_20"].iloc[-1]), 2) if "EMA_20" in df else None,
+    }

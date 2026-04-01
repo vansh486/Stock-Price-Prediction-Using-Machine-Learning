@@ -91,7 +91,7 @@ function PriceChart({
   }
 
   return (
-    <article className="fade-slide-in rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)] sm:p-6 xl:col-span-2">
+    <article className="fade-slide-in panel-hover rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.28)] sm:p-6 xl:col-span-2">
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Candlestick + Volume</p>

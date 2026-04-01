@@ -3,18 +3,18 @@ import { Search, Sparkles } from 'lucide-react';
 
 function StockSearch({ ticker, setTicker, loading, onSubmit, quickTickers, onQuickSelect }) {
   return (
-    <section className="fade-slide-in relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.25)] sm:p-6">
+    <section className="fade-slide-in panel-hover relative overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 p-4 shadow-[0_20px_40px_rgba(2,6,23,0.25)] sm:p-6">
       <div className="pointer-events-none absolute -right-10 -top-12 h-36 w-36 rounded-full bg-cyan-400/20 blur-2xl" />
       <div className="pointer-events-none absolute -bottom-16 -left-10 h-40 w-40 rounded-full bg-emerald-400/15 blur-2xl" />
 
       <div className="relative flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-300">
-            Enter any stock ticker and get instant predictive analytics.
+            Load a ticker to refresh the model, risk posture, flowchart, and execution workspace.
           </p>
           <p className="inline-flex items-center gap-2 rounded-full border border-emerald-500 bg-emerald-500/10 px-3 py-1 text-xs tracking-wide text-emerald-200">
             <Sparkles size={12} />
-            Real-time AI Snapshot
+            Adaptive AI Snapshot
           </p>
         </div>
 
