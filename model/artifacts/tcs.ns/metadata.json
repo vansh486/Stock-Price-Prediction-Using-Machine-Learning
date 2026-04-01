@@ -1,0 +1,30 @@
+{
+  "feature_columns": [
+    "Open",
+    "High",
+    "Low",
+    "Close",
+    "Volume",
+    "SMA_5",
+    "SMA_10",
+    "SMA_20",
+    "RSI_14",
+    "MACD_12_26_9",
+    "MACDh_12_26_9",
+    "MACDs_12_26_9",
+    "BBL_20_2.0_2.0",
+    "BBM_20_2.0_2.0",
+    "BBU_20_2.0_2.0",
+    "BBB_20_2.0_2.0",
+    "BBP_20_2.0_2.0",
+    "EMA_20",
+    "Close_1d_ago",
+    "Close_2d_ago"
+  ],
+  "look_back_window": 60,
+  "model_path": "D:\\minor project\\stock\\stock-predictor\\stock-predictor\\model\\lstm_TCS.NS.keras",
+  "row_count": 1202,
+  "ticker": "TCS.NS",
+  "trained_at": "2026-04-01T20:55:25.593562Z",
+  "training_period": "5y"
+}

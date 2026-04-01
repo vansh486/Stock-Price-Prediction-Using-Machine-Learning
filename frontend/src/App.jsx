@@ -110,6 +110,7 @@ function createLabels(timeframe, points, market) {
     const labels = [];
     let hour = market.code === 'india' ? 9 : 9;
     let minute = market.code === 'india' ? 15 : 30;
+    const closingMinutes = market.code === 'india' ? 930 : 960;
 
     for (let index = 0; index < points; index += 1) {
       labels.push(`${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`);
@@ -117,6 +118,11 @@ function createLabels(timeframe, points, market) {
       if (minute >= 60) {
         minute -= 60;
         hour += 1;
+      }
+      const totalMinutes = hour * 60 + minute;
+      if (totalMinutes > closingMinutes && index < points - 1) {
+        hour = Math.floor(closingMinutes / 60);
+        minute = closingMinutes % 60;
       }
     }
     return labels;
@@ -141,7 +147,7 @@ function createLabels(timeframe, points, market) {
 
 function buildPriceSeries({ current, predicted, ema, timeframe, ticker, market }) {
   const pointsMap = {
-    '1D': 14,
+    '1D': market.code === 'india' ? 13 : 14,
     '1W': 10,
     '1M': 22,
     '3M': 26,
