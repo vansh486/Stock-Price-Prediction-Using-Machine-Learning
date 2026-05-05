@@ -1,0 +1,11 @@
+{
+  "directional_accuracy": 51.29,
+  "epochs_ran": 10,
+  "final_train_loss": 0.003005,
+  "final_val_loss": 0.001917,
+  "mae": 5.2762,
+  "mape": 2.37,
+  "rmse": 7.3122,
+  "sharpe_ratio": 1.8,
+  "total_return_pct": 58.49
+}
